@@ -1,0 +1,13 @@
+{
+  "line_id": "Q",
+  "calibrations": ["K"],
+  "passes": [["A", "K"]],
+  "strips": [
+    {"id": "a1", "pass": "A", "window": [0, 3], "depth": "1.000", "unit": "m"},
+    {"id": "a2", "pass": "A", "window": [3, 6], "depth": "100", "unit": "cm"},
+    {"id": "a3", "pass": "A", "window": [6, 7], "depth": "1000", "unit": "mm"},
+    {"id": "a4", "pass": "A", "window": [7, 8], "depth": "1200", "unit": "mm"}
+  ],
+  "rule_mm": [900, 1100],
+  "issue_window": [0, 8]
+}
