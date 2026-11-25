@@ -2,7 +2,10 @@ from dataclasses import dataclass
 import sqlite3
 from typing import Literal
 
-from review.eligibility import ReviewDecision, ReviewRequest, decide_review
+from review.continuation import ContinuationDecision, decide_continuation
+from review.eligibility import (
+    ReviewDecision, ReviewRequest, ReviewRequestError, decide_review,
+)
 from review.repository import (
     InitialReceipt, ReportEvidence, SignedReport, allocate_report_number,
     insert_initial_receipt, insert_report,
@@ -52,3 +55,43 @@ def review(db: sqlite3.Connection, request: ReviewRequest) -> ReviewResult:
     if decision.witness is None:
         return ReviewResult('resurvey')
     return sign_report(db, decision)
+
+
+def sign_continuation_report(
+    db: sqlite3.Connection, decision: ContinuationDecision,
+) -> ReviewResult:
+    witness = decision.witness
+    if witness is None:
+        raise SigningError('no continuation witness to sign')
+    old_report = decision.old_report
+    evidence = tuple(
+        ReportEvidence(part.strip_id, part.window.start, part.window.end,
+                       part.source_window.start, part.source_window.end)
+        for part in witness.pieces
+    )
+    try:
+        db.execute('BEGIN IMMEDIATE')
+        with db:
+            report_number = allocate_report_number(db)
+            report = SignedReport(
+                report_number, decision.receipt_id, decision.issue_number,
+                decision.packet_checksum, decision.line_id, decision.revision_id,
+                old_report.start, old_report.end, old_report.suspended_batch,
+                witness.pass_id, witness.batch_id, evidence,
+                old_report.report_number,
+            )
+            first_receipt = InitialReceipt(f'FIRST-{report_number}', report_number)
+            insert_report(db, report)
+            insert_initial_receipt(db, first_receipt)
+    except (sqlite3.Error, ValueError, OverflowError) as error:
+        raise SigningError(str(error)) from error
+    return ReviewResult('signed', report, first_receipt)
+
+
+def continue_review(
+    db: sqlite3.Connection, old_report: int, new_receipt: int,
+) -> ReviewResult:
+    decision = decide_continuation(db, old_report, new_receipt)
+    if decision.witness is None:
+        return ReviewResult('resurvey')
+    return sign_continuation_report(db, decision)

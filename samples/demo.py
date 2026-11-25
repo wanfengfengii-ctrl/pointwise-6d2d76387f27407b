@@ -21,6 +21,7 @@ from source.lines import SurveyLine
 from source.passes import SurveyPass
 from source.registration import init_source, register
 from source.strips import RawStrip
+from samples.continuation_demo import main as continuation_main
 
 
 SAMPLE_DIR = Path(__file__).resolve().parent
@@ -125,6 +126,8 @@ def main():
                 ['source/registration.py', 'issue/publish.py', 'intake/repository.py', 'review/retrieve.py'],
                 '更正只让新件补齐 [6,7)，旧实收结果与旧报告存档保持。',
             )
+
+    continuation_main()
 
 
 if __name__ == '__main__':
